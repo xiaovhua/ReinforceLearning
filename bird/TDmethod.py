@@ -122,6 +122,7 @@ class TimeDifference(game):
                 Qmax = self.Q[new_i][new_j][new_a]
                 # Update Q(s, a)
                 self.Q[i][j][a] += self.alpha * (self.rewards[i][j][a] + self.gama * Qmax - self.Q[i][j][a])
+                # calculate a'
                 self.step_epsilon_greedy_Q(self.epsilon)
                 a = self.a
                 self.state = [new_i, new_j]
@@ -203,7 +204,7 @@ class TimeDifference(game):
                     new_i = i - 1
                     new_j = j
                 self.state = [new_i, new_j]
-                # Calculate Qmax(S') to get a'
+                # Calculate Qmax(S')
                 if new_i == 0:
                     if new_j == 0:
                         new_a = np.argmax(np.array([Q2[new_i][new_j][0], Q2[new_i][new_j][1]]))
@@ -227,6 +228,7 @@ class TimeDifference(game):
                     new_a = np.argmax(np.array([Q2[new_i][new_j][0], Q2[new_i][new_j][1], Q2[new_i][new_j][2], Q2[new_i][new_j][3]]))
                 Qmax = self.Q[new_i][new_j][new_a]
                 self.Q[i][j][a] += self.alpha * (self.rewards[i][j][a] + self.gama * Qmax - self.Q[i][j][a])
+                # calculate a'
                 self.step_epsilon_greedy_Q(self.epsilon)
                 new_a = self.a
                 self.state = [new_i, new_j]
@@ -259,7 +261,7 @@ TD = TimeDifference()
 
 #TD.evaluation_Sarsa(2000)
 
-#TD.evaluation_Qlearning(200)
+#TD.evaluation_Qlearning(300)
 
 #TD.evaluation_expected_Sarsa(300)
 
