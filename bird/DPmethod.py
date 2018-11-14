@@ -1,3 +1,4 @@
+# Used to learn by using Dynamic Programming Algorithm
 from bird.Game_make import game_make
 from bird.Game import game
 import numpy as np
@@ -9,46 +10,28 @@ class DynamicProgramming(game):
         self.V = np.zeros([17, 20])
         self.__rewards_init()
         self.__V_init()
+        # used to save the strategy to make decision
         self.strategy = 'random'
 
-    """
-    # 这个是MC的
-    def __rewards_init(self):
-        # 终点为10,撞墙为-5
-        self.__rewards = np.zeros([17, 20, 4]) - 1
-        for i in range(9):
-            self.__rewards[i][6][0] -= 9999
-            self.__rewards[i][8][2] -= 9999
-            self.__rewards[16 - i][13][0] -= 9999
-            self.__rewards[16 - i][15][2] -= 9999
-        for i in range(4):
-            self.__rewards[i][13][0] -= 9999
-            self.__rewards[i][15][2] -= 9999
-            self.__rewards[16 - i][6][0] -= 9999
-            self.__rewards[16 - i][8][2] -= 9999
-        self.__rewards[9][7][3] = -9999
-        self.__rewards[12][7][1] = -9999
-        self.__rewards[4][14][3] = -9999
-        self.__rewards[7][14][1] = -9999
-        self.__rewards[0][18][0] += 1000000000000000001
-        self.__rewards[1][19][3] += 1000000000000000001
-    """
-
+        
     def ChangeStrategy(self, strategy):
         self.strategy = strategy
 
     def __rewards_init(self):
+        # initial rewards, which are set 100 in the goal and -100 in the brides, others are set to -1
         self.rewards = np.zeros([17, 20]) - 1
         for state in self.endstate:
             self.rewards[state[0], state[1]] -= 99
         self.rewards[0, 19] += 101
 
     def __V_init(self):
+        # initial State Value Function, which are set 1000 in the goal and -1000 in the brides
         for id in self.endstate:
             self.V[id[0], id[1]] = -1000
         self.V[0, 19] = 1000
 
     def stra_evaluation_random(self, k):
+        # evaluate random policy and update the State Value Function by using Bellman Equation
         for iter in range(k):
             self.iteration += 1
             for i in range(17):
@@ -100,27 +83,26 @@ class DynamicProgramming(game):
             self.__V_init()
 
     def stra_evaluation_greedy(self, k):
+        # evaluate greedy policy of V and update the State Value Function by using Bellman Equation
         for iter in range(k):
             self.iteration += 1
+            # select the max(V(s'))
             for i in range(17):
                 for j in range(20):
                     k = []
                     if i == 0:
-                        # 左上
                         if j == 0:
                             m = max(self.V[i + 1][j], self.V[i][j + 1])
                             if m == self.V[j + 1][j]:
                                 k.append(0)
                             if m == self.V[i + 1][j]:
                                 k.append(1)
-                        # 右上
                         elif j == 19:
                             m = max(self.V[i + 1][j], self.V[i][j - 1])
                             if m == self.V[i + 1][j]:
                                 k.append(1)
                             if m == self.V[i][j - 1]:
                                 k.append(2)
-                        # 上
                         else:
                             m = max(self.V[i + 1][j], self.V[i][j + 1], self.V[i][j - 1])
                             if m == self.V[i][j + 1]:
@@ -130,21 +112,18 @@ class DynamicProgramming(game):
                             if m == self.V[i][j - 1]:
                                 k.append(2)
                     elif i == 16:
-                        # 左下
                         if j == 0:
                             m = max(self.V[i][j + 1], self.V[i - 1][j])
                             if m == self.V[i][j + 1]:
                                 k.append(0)
                             if m == self.V[i - 1][j]:
                                 k.append(3)
-                        # 右下
                         elif j == 19:
                             m = max(self.V[i - 1][j], self.V[i][j - 1])
                             if m == self.V[i][j - 1]:
                                 k.append(2)
                             if m == self.V[i - 1][j]:
                                 k.append(3)
-                        # 下
                         else:
                             m = max(self.V[i - 1][j], self.V[i][j - 1], self.V[i][j + 1])
                             if m == self.V[i][j + 1]:
@@ -180,8 +159,8 @@ class DynamicProgramming(game):
                         if m == self.V[i - 1][j]:
                             k.append(3)
                     num = np.shape(k)[0]
+                    # update the State Value Function V
                     p = np.random.random()
-                    # 选定 n 为最大值
                     if num == 1:
                         n = k[0]
                         if n == 0:
@@ -223,7 +202,7 @@ class DynamicProgramming(game):
                             + (self.rewards[i][j] + self.gama * self.V[i + 1][j]) \
                             + (self.rewards[i][j] + self.gama * self.V[i][j - 1]) \
                             + (self.rewards[i][j] + self.gama * self.V[i - 1][j]))
-
+    # improve the policy by update self.policy with greedy strategy 
     def stra_improve(self):
         self.state = [0, 0]
         while self.state not in self.endstate:
@@ -245,6 +224,7 @@ class DynamicProgramming(game):
             self.step_greedy_Q()
 
     def show(self):
+        # visualize the policy
         game = game_make()
         self.state = [0, 0]
         count = 0
