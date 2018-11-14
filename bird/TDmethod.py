@@ -51,7 +51,7 @@ class TimeDifference(game):
     # Use sarsa(epsilon-greedy) to evaluate policy
     def evaluation_Sarsa(self, k):
         # epsilon in epsilon-greedy
-        self.epsilon = 0.1
+        self.epsilon = 0.2
         for i in range(k):
             self.iteration += 1
             self.state = [0, 0]
@@ -90,16 +90,16 @@ class TimeDifference(game):
                 
     # Use Qlearning(greedy) to evaluate policy
     def evaluation_Qlearning(self, k):
+        self.epsilon = 0.2
         for i in range(k):
             self.iteration += 1
             self.state = [0, 0]
             # get the initial (s, a)
             i = self.state[0]
             j = self.state[1]
-            self.step_greedy_Q()
+            self.step_epsilon_greedy_Q(self.epsilon)
             a = self.a
             self.state = [i, j]
-            count = 0
             while self.state not in self.endstate:
                 # Calculate s'
                 if a == 0:
@@ -115,13 +115,16 @@ class TimeDifference(game):
                     new_i = i - 1
                     new_j = j
                 self.state = [new_i, new_j]
-                # Calculate Qmax(S') to get the a'
+                # Calculate Qmax(S')
                 self.step_greedy_Q()
                 new_a = self.a
                 self.state = [new_i, new_j]
                 Qmax = self.Q[new_i][new_j][new_a]
                 # Update Q(s, a)
                 self.Q[i][j][a] += self.alpha * (self.rewards[i][j][a] + self.gama * Qmax - self.Q[i][j][a])
+                self.step_epsilon_greedy_Q(self.epsilon)
+                a = self.a
+                self.state = [new_i, new_j]
                 a = new_a
                 i = new_i
                 j = new_j
@@ -130,7 +133,7 @@ class TimeDifference(game):
 
     # Use Expected Sarsa to evaluate policy
     def evaluation_expected_Sarsa(self, k):
-        self.epsilon = 0.1
+        self.epsilon = 0.2
         for i in range(k):
             self.iteration += 1
             self.state = [0, 0]
@@ -173,13 +176,14 @@ class TimeDifference(game):
 
     # Use double Qlearning to evaluate policy, which can avoid overfitting by noise
     def evaluation_double_Qlearning(self, k):
+        self.epsilon = 0.2
         for i in range(k):
             self.iteration += 1
             self.state = [0, 0]
             # calculate (s, a)
             i = self.state[0]
             j = self.state[1]
-            self.step_greedy_Q()
+            self.step_epsilon_greedy_Q()
             a = self.a
             self.state = [i, j]
             Q2 = self.Q.copy()
@@ -223,6 +227,9 @@ class TimeDifference(game):
                     new_a = np.argmax(np.array([Q2[new_i][new_j][0], Q2[new_i][new_j][1], Q2[new_i][new_j][2], Q2[new_i][new_j][3]]))
                 Qmax = self.Q[new_i][new_j][new_a]
                 self.Q[i][j][a] += self.alpha * (self.rewards[i][j][a] + self.gama * Qmax - self.Q[i][j][a])
+                self.step_epsilon_greedy_Q(self.epsilon)
+                new_a = self.a
+                self.state = [new_i, new_j]
                 a = new_a
                 i = new_i
                 j = new_j
