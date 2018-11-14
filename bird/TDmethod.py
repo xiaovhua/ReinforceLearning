@@ -184,7 +184,7 @@ class TimeDifference(game):
             # calculate (s, a)
             i = self.state[0]
             j = self.state[1]
-            self.step_epsilon_greedy_Q()
+            self.step_epsilon_greedy_Q(self.epsilon)
             a = self.a
             self.state = [i, j]
             Q2 = self.Q.copy()
