@@ -1,3 +1,4 @@
+# Used to learn by using Monte Carlo method
 from bird.Game_make import game_make
 from bird.Game import game
 import numpy as np
@@ -8,17 +9,19 @@ class MonteCarlo(game):
         game.__init__(self)
         self.__rewards_init()
         self.__Q_init()
-        # 计算(s, a)对的出现次数,用于估计累计回报Gt
+        # calculate the occurrences of (s, a), which are used to calculate Gt, the cumulative returns
         self.Num = np.zeros([17, 20, 4])
+        # the cumulative returns
         self.Gt = 0
-        # 探索型初始化用,判断小鸟是否出生在初始点,如果是就进行下一次采样
+        # used in Exploratory initialization, which is used to decide whether the bird is born in the endstate
         self.end = 0
         self.epsilon = 0.3
-        # Offpolicy 用
+        # used in Offpolicy MC
         self.C = np.zeros([17, 20, 4])
 
     def __rewards_init(self):
         self.rewards = np.zeros([17, 20, 4]) - 1
+        # because it's difficult to achieve the goal, I set the rewards arround the goal large
         for i in range(9):
             self.rewards[i][6][0] -= 9999
             self.rewards[i][8][2] -= 9999
@@ -36,8 +39,10 @@ class MonteCarlo(game):
         self.rewards[0][18][0] += 1000000000000000001
         self.rewards[1][19][3] += 1000000000000000001
 
+    # initialize the Action State Value Function
     def __Q_init(self):
         self.Q = np.random.random([17, 20, 4]) - 1
+        # the Q(s, a) which will lead to hit a bride are set small, and the one leading to achieve goal are set large
         for i in range(17):
             for j in range(20):
                 if [i, j] == self.endstate:
@@ -56,34 +61,31 @@ class MonteCarlo(game):
 
 
     """++++++++++++++++++++++++++++++++++++++++++++++++++++++"""
-    """                      探索型初始化                      """
+    """               Exploratory initializat                """
     """++++++++++++++++++++++++++++++++++++++++++++++++++++++"""
 
-    # 探索型初始化
+
     def __state_init(self):
-        # 在探索型初始化中被使用,初始化任一(s, a)
+        # initialize a random state S as initial state
         self.s_a = []
         self.Gt = 0
         self.flag = np.ones([17, 20, 4])
-        ran = np.random.randint(0, 340) # 产生0-339的随机数
+        ran = np.random.randint(0, 340) # Generate a random Integer in [0, 339]
         self.state = [int(ran/20), ran%20]
         p = np.random.random()
         i = self.state[0]
         j = self.state[1]
         if i == 0:
-            # 左上
             if j == 0:
                 if p < 0.5:
                     self.s_a.append([self.state, 0])
                 else:
                     self.s_a.append([self.state, 1])
-            # 右上
             elif j == 19:
                 if p < 0.5:
                     self.s_a.append([self.state, 1])
                 else:
                     self.s_a.append([self.state, 2])
-            # 上
             else:
                 if p < 0.333:
                     self.s_a.append([self.state, 0])
@@ -92,19 +94,16 @@ class MonteCarlo(game):
                 else :
                     self.s_a.append([self.state, 2])
         elif i == 16:
-            # 左下
             if j == 0:
                 if p < 0.5:
                     self.s_a.append([self.state, 0])
                 else:
                     self.s_a.append([self.state, 3])
-            # 右下
             elif j == 19:
                 if p < 0.5:
                     self.s_a.append([self.state, 3])
                 else:
                     self.s_a.append([self.state, 2])
-            # 下
             else:
                 if p < 0.333:
                     self.s_a.append([self.state, 0])
@@ -113,7 +112,6 @@ class MonteCarlo(game):
                 else :
                     self.s_a.append([self.state, 3])
         elif j == 0:
-            # 左
             if p < 0.333:
                 self.s_a.append([self.state, 0])
             elif p < 0.666:
@@ -121,7 +119,6 @@ class MonteCarlo(game):
             else:
                 self.s_a.append([self.state, 3])
         elif j == 19:
-            # 右
             if p < 0.333:
                 self.s_a.append([self.state, 1])
             elif p < 0.666:
@@ -138,9 +135,9 @@ class MonteCarlo(game):
             else:
                 self.s_a.append([self.state, 3])
 
-    # 探索型初始化的第一步
+    # take the first step according to the initial random state
     def __first_step(self):
-        # 在探索型初始化中使用,对产生的任一(s, a)进行第一步动作,得到下一状态.如果该点是终点就进行下一次采样
+        # jump to the next episode if born in the endstate
         if self.state in self.endstate:
             self.end = 1
             return
@@ -161,15 +158,18 @@ class MonteCarlo(game):
                 self.state = [i - 1, j]
 
     """
-    ++++++++随机++++++++
+    ++++++++random++++++++
     """
 
     def step_MC_random(self, gama):
+        # take next step according to a random strategy
         state = self.state.copy()
         i = state[0]
         j = state[1]
         self.step_random()
+        # update the episode self.s_a
         self.s_a.append([state, self.a])
+        # update the Cumulative Return
         self.Gt += gama * self.rewards[i][j][self.a]
 
     def evaluate_random(self, k):
@@ -181,11 +181,12 @@ class MonteCarlo(game):
                 self.end = 0
                 continue
             else:
-                # 采取一个 epsimode
+                # take an epsimode with penalty self.game
                 gama = self.gama ** 2
                 while self.state not in self.endstate:
                     self.step_MC_random(gama)
                     gama *= self.gama
+                # calculate the Cumulative Return of each (s, a) and update Action-State Value Function Q(s, a)
                 gama = self.gama
                 for state, action in self.s_a:
                     # first visit MC
@@ -200,9 +201,9 @@ class MonteCarlo(game):
                     gama *= self.gama
 
     """
-    ++++++++贪婪++++++++
+    ++++++++greedy++++++++
     """
-
+    # use greedy policy instead of random policy
     def step_MC_greedy(self, gama):
         state = self.state.copy()
         i = state[0]
@@ -220,7 +221,6 @@ class MonteCarlo(game):
                 self.end = 0
                 continue
             else:
-                # 采取一个 epsimode
                 count = 0
                 gama = self.gama ** 2
                 while self.state not in self.endstate:
@@ -248,6 +248,8 @@ class MonteCarlo(game):
     """++++++++++++++++++++++++++++++++++++++++++++++++++++++"""
     """                       On-policy                      """
     """++++++++++++++++++++++++++++++++++++++++++++++++++++++"""
+    
+    # Similar to the previous one, but start in [0, 0] instead of random one, and use a epsilon-greedy policy
     def step_Onpolicy(self, gama, epsilon):
         state = self.state.copy()
         i = state[0]
@@ -264,7 +266,6 @@ class MonteCarlo(game):
             self.flag = np.ones([17, 20, 4])
             self.iteration += 1
             self.state = [0, 0]
-            # 采取一个 epsimode
             gama = self.gama ** 2
             while self.state not in self.endstate:
                 self.step_Onpolicy(gama, self.epsilon)
@@ -292,13 +293,11 @@ class MonteCarlo(game):
     """++++++++++++++++++++++++++++++++++++++++++++++++++++++"""
     def evaluate_Offpolicy(self, k):
         for i in range(k):
-        # 软策略采一次样本
             self.s_a = []
             self.Gt = 0
             self.flag = np.ones([17, 20, 4])
             self.iteration += 1
             self.state = [0, 0]
-            # 采取一个 epsimode
             gama = self.gama ** 2
             while self.state not in self.endstate:
                 self.step_Onpolicy(gama, self.epsilon)
@@ -313,26 +312,21 @@ class MonteCarlo(game):
                 j = state[1]
                 self.Gt = self.gama * self.Gt + self.rewards[i][j][action]
                 self.C[i][j][action] += W
-                # 评估
                 self.Q[i][j][action] += W / self.C[i][j][action] * (self.Gt - self.Q[i][j][action])
-                # 改善
                 k = []
                 if i == 0:
-                    # 左上
                     if j == 0:
                         m = max(self.Q[i][j][0], self.Q[i][j][1])
                         if m == self.Q[i][j][0]:
                             k.append(0)
                         if m == self.Q[i][j][1]:
                             k.append(1)
-                    # 右上
                     elif j == 19:
                         m = max(self.Q[i][j][2], self.Q[i][j][1])
                         if m == self.Q[i][j][1]:
                             k.append(1)
                         if m == self.Q[i][j][2]:
                             k.append(2)
-                    # 上
                     else:
                         m = max(self.Q[i][j][2], self.Q[i][j][1], self.Q[i][j][0])
                         if m == self.Q[i][j][0]:
@@ -342,21 +336,18 @@ class MonteCarlo(game):
                         if m == self.Q[i][j][2]:
                             k.append(2)
                 elif i == 16:
-                    # 左下
                     if j == 0:
                         m = max(self.Q[i][j][0], self.Q[i][j][3])
                         if m == self.Q[i][j][0]:
                             k.append(0)
                         if m == self.Q[i][j][3]:
                             k.append(3)
-                    # 右下
                     elif j == 19:
                         m = max(self.Q[i][j][2], self.Q[i][j][3])
                         if m == self.Q[i][j][2]:
                             k.append(2)
                         if m == self.Q[i][j][3]:
                             k.append(3)
-                    # 下
                     else:
                         m = max(self.Q[i][j][2], self.Q[i][j][3], self.Q[i][j][0])
                         if m == self.Q[i][j][0]:
@@ -393,7 +384,6 @@ class MonteCarlo(game):
                         k.append(3)
                 num = np.shape(k)[0]
                 p = np.random.random()
-                # 选定 n 为最大值
                 if num == 1:
                     n = k[0]
                 elif num == 2:
