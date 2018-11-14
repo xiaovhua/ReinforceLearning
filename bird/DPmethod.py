@@ -18,14 +18,14 @@ class DynamicProgramming(game):
         self.strategy = strategy
 
     def __rewards_init(self):
-        # initial rewards, which are set 100 in the goal and -100 in the brides, others are set to -1
+        # initialize rewards, which are set 100 in the goal and -100 in the brides, others are set to -1
         self.rewards = np.zeros([17, 20]) - 1
         for state in self.endstate:
             self.rewards[state[0], state[1]] -= 99
         self.rewards[0, 19] += 101
 
     def __V_init(self):
-        # initial State Value Function, which are set 1000 in the goal and -1000 in the brides
+        # initialize State Value Function, which are set 1000 in the goal and -1000 in the brides
         for id in self.endstate:
             self.V[id[0], id[1]] = -1000
         self.V[0, 19] = 1000
