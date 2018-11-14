@@ -419,7 +419,7 @@ class MonteCarlo(game):
 
 
 
-
+    # visualiz the policy
     def show(self):
         game = game_make()
         self.state = [0, 0]
