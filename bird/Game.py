@@ -29,7 +29,7 @@ class game():
         # the State Transition Matrix, the default is one
         self.P = np.ones([17, 20, 4])
         
-    # initial the endstate, and describe by a [x, y]
+    # initialize the endstate, and describe by a [x, y]
     def endstate_init(self):
         self.endstate = []
         self.endstate.append([0, 19])
