@@ -1,3 +1,4 @@
+# Used to learn bu using Time Difference Algorithm
 from bird.Game import game
 from bird.Game_make import game_make
 import numpy as np
@@ -8,8 +9,10 @@ class TimeDifference(game):
         game.__init__(self)
         self.__Q_init()
         self.__rewards_init()
+        # the learning rate
         self.alpha = 0.5
 
+    # initialize the Action-State Value Function
     def __Q_init(self):
         self.Q = np.zeros([17, 20, 4])
         for state in self.endstate:
@@ -25,6 +28,7 @@ class TimeDifference(game):
         self.Q[0][18][0] += 1000
         self.Q[1][19][3] += 1000
 
+    # initialize the rewards
     def __rewards_init(self):
         self.rewards = np.zeros([17, 20, 4]) - 1
         for i in range(9):
@@ -44,19 +48,21 @@ class TimeDifference(game):
         self.rewards[0][18][0] += 100001
         self.rewards[1][19][3] += 100001
 
+    # Use sarsa(epsilon-greedy) to evaluate policy
     def evaluation_Sarsa(self, k):
+        # epsilon in epsilon-greedy
         self.epsilon = 0.1
         for i in range(k):
             self.iteration += 1
             self.state = [0, 0]
-            # 算(S, a)
+            # get the initial (s, a)
             i = self.state[0]
             j = self.state[1]
             self.step_epsilon_greedy_Q(self.epsilon)
             a = self.a
             self.state = [i, j]
             while self.state not in self.endstate:
-                # 算 S'
+                # Calculate a S'
                 if a == 0:
                     new_i = i
                     new_j = j + 1
@@ -70,24 +76,24 @@ class TimeDifference(game):
                     new_i = i - 1
                     new_j = j
                 self.state = [new_i, new_j]
-                # 算 a'
+                # Calculate a'
                 self.step_epsilon_greedy_Q(self.epsilon)
                 new_a = self.a
                 self.state = [new_i, new_j]
-                # 更新 Q
+                # update Q(s,a)
                 self.Q[i][j][a] += self.alpha * (self.rewards[i][j][a] + self.gama * self.Q[new_i][new_j][new_a] - self.Q[i][j][a])
                 a = new_a
                 i = new_i
                 j = new_j
             if self.iteration % 500 == 0 :
                 print(self.iteration)
-
-    # TD(0),只看下一步
+                
+    # Use Qlearning(greedy) to evaluate policy
     def evaluation_Qlearning(self, k):
         for i in range(k):
             self.iteration += 1
             self.state = [0, 0]
-            # 算 (S, a)
+            # get the initial (s, a)
             i = self.state[0]
             j = self.state[1]
             self.step_greedy_Q()
@@ -95,7 +101,7 @@ class TimeDifference(game):
             self.state = [i, j]
             count = 0
             while self.state not in self.endstate:
-                # 算 S'
+                # Calculate s'
                 if a == 0:
                     new_i = i
                     new_j = j + 1
@@ -109,11 +115,12 @@ class TimeDifference(game):
                     new_i = i - 1
                     new_j = j
                 self.state = [new_i, new_j]
-                # 算 Qmax(S'), a'
+                # Calculate Qmax(S') to get the a'
                 self.step_greedy_Q()
                 new_a = self.a
                 self.state = [new_i, new_j]
                 Qmax = self.Q[new_i][new_j][new_a]
+                # Update Q(s, a)
                 self.Q[i][j][a] += self.alpha * (self.rewards[i][j][a] + self.gama * Qmax - self.Q[i][j][a])
                 a = new_a
                 i = new_i
@@ -121,19 +128,20 @@ class TimeDifference(game):
             if self.iteration % 100 == 0:
                 print(self.iteration)
 
+    # Use Expected Sarsa to evaluate policy
     def evaluation_expected_Sarsa(self, k):
         self.epsilon = 0.1
         for i in range(k):
             self.iteration += 1
             self.state = [0, 0]
-            # 算(S, a)
+            # Calculate (S, a)
             i = self.state[0]
             j = self.state[1]
             self.step_epsilon_greedy_Q(self.epsilon)
             a = self.a
             self.state = [i, j]
             while self.state not in self.endstate:
-                # 算 S'
+                # Calculate s'
                 if a == 0:
                     new_i = i
                     new_j = j + 1
@@ -147,15 +155,15 @@ class TimeDifference(game):
                     new_i = i - 1
                     new_j = j
                 self.state = [new_i, new_j]
-                # 算 a'
+                # Calculate a'
                 self.step_epsilon_greedy_Q(self.epsilon)
                 new_a = self.a
                 self.state = [new_i, new_j]
-                # 算 expected_Q
+                # Calculate expected_Q
                 expected_Q = (1 - self.epsilon) * self.Q[new_i][new_j][new_a]
                 for k in range(4):
                     expected_Q += self.epsilon / 4 * self.Q[new_i][new_j][k]
-                # 更新 Q
+                # update Q(s, a)
                 self.Q[i][j][a] += self.alpha * (self.rewards[i][j][a] + self.gama * expected_Q - self.Q[i][j][a])
                 a = new_a
                 i = new_i
@@ -163,11 +171,12 @@ class TimeDifference(game):
             if self.iteration % 100 == 0 :
                 print(self.iteration)
 
+    # Use double Qlearning to evaluate policy, which can avoid overfitting by noise
     def evaluation_double_Qlearning(self, k):
         for i in range(k):
             self.iteration += 1
             self.state = [0, 0]
-            # 算 (S, a)
+            # calculate (s, a)
             i = self.state[0]
             j = self.state[1]
             self.step_greedy_Q()
@@ -176,7 +185,7 @@ class TimeDifference(game):
             Q2 = self.Q.copy()
             count = 0
             while self.state not in self.endstate:
-                # 算 S'
+                # calculate s'
                 if a == 0:
                     new_i = i
                     new_j = j + 1
@@ -190,8 +199,7 @@ class TimeDifference(game):
                     new_i = i - 1
                     new_j = j
                 self.state = [new_i, new_j]
-
-                # 算 Qmax(S'), a'
+                # Calculate Qmax(S') to get a'
                 if new_i == 0:
                     if new_j == 0:
                         new_a = np.argmax(np.array([Q2[new_i][new_j][0], Q2[new_i][new_j][1]]))
@@ -200,6 +208,7 @@ class TimeDifference(game):
                     else:
                         new_a = np.argmax(np.array([Q2[new_i][new_j][0], Q2[new_i][new_j][1], Q2[new_i][new_j][2]]))
                 elif new_i == 16:
+                    # add a -100000000 which is very small to use np.argmax to get the index directly
                     if new_j == 0:
                         new_a = np.argmax(np.array([Q2[new_i][new_j][0], -10000000000, -10000000000, Q2[new_i][new_j][3]]))
                     elif new_j == 19:
@@ -223,6 +232,7 @@ class TimeDifference(game):
             if self.iteration % 100 == 0:
                 print(self.iteration)
 
+    # visialize the policy
     def show(self):
         game = game_make()
         self.state = [0, 0]
