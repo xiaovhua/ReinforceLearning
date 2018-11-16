@@ -42,22 +42,6 @@ class MonteCarlo(game):
     # initialize the Action State Value Function
     def __Q_init(self):
         self.Q = np.random.random([17, 20, 4]) - 1
-        # the Q(s, a) which will lead to hit a bride are set small, and the one leading to achieve goal are set large
-        for i in range(17):
-            for j in range(20):
-                if [i, j] == self.endstate:
-                    for k in range(4):
-                        self.Q[i][j][k] = -10000
-                    self.Q[i][j - 1][0] = -10000
-                    self.Q[i][j + 1][2] = -10000
-        self.Q[9][7][3] = -10000
-        self.Q[12][7][1] = -10000
-        self.Q[4][14][3] = -10000
-        self.Q[7][14][1] = -10000
-        for k in range(4):
-            self.Q[0][19][k] = 1000
-        self.Q[0][18][0] = 100000
-        self.Q[1][19][3] = 100000
 
 
     """++++++++++++++++++++++++++++++++++++++++++++++++++++++"""
