@@ -15,18 +15,6 @@ class TimeDifference(game):
     # initialize the Action-State Value Function
     def __Q_init(self):
         self.Q = np.zeros([17, 20, 4])
-        for state in self.endstate:
-            i = state[0]
-            j = state[1]
-            if j != 19:
-                self.Q[i][j + 1][2] -= 1000
-            self.Q[i][j - 1][0] -= 1000
-        self.Q[9][7][3] -= 1000
-        self.Q[12][7][1] -= 1000
-        self.Q[4][14][3] -= 1000
-        self.Q[7][14][1] -= 1000
-        self.Q[0][18][0] += 1000
-        self.Q[1][19][3] += 1000
 
     # initialize the rewards
     def __rewards_init(self):
@@ -177,20 +165,20 @@ class TimeDifference(game):
 
     # Use double Qlearning to evaluate policy, which can avoid overfitting by noise
     def evaluation_double_Qlearning(self, k):
-        self.epsilon = 0.1
+        Q1 = self.Q
+        Q2 = self.Q.copy()
+        self.Q = Q1 + Q2
         for i in range(k):
             self.iteration += 1
             self.state = [0, 0]
-            # calculate (s, a)
+            # calculate (S, a)
             i = self.state[0]
             j = self.state[1]
             self.step_epsilon_greedy_Q(self.epsilon)
             a = self.a
             self.state = [i, j]
-            Q2 = self.Q.copy()
-            count = 0
             while self.state not in self.endstate:
-                # calculate s'
+                # Calculate S'
                 if a == 0:
                     new_i = i
                     new_j = j + 1
@@ -204,40 +192,62 @@ class TimeDifference(game):
                     new_i = i - 1
                     new_j = j
                 self.state = [new_i, new_j]
-                # Calculate Qmax(S')
-                if new_i == 0:
-                    if new_j == 0:
-                        new_a = np.argmax(np.array([Q2[new_i][new_j][0], Q2[new_i][new_j][1]]))
+                # Update Q2
+                if np.random.random() > 0.5:
+                    if new_i == 0:
+                        if new_j == 0:
+                            new_a = np.argmax(np.array([Q2[new_i][new_j][0], Q2[new_i][new_j][1]]))
+                        elif new_j == 19:
+                            new_a = np.argmax(np.array([Q2[new_i][new_j][1], Q2[new_i][new_j][2]]))
+                        else:
+                            new_a = np.argmax(np.array([Q2[new_i][new_j][0], Q2[new_i][new_j][1], Q2[new_i][new_j][2]]))
+                    elif new_i == 16:
+                        if new_j == 0:
+                            new_a = np.argmax(np.array([Q2[new_i][new_j][0], -10000000000, -10000000000, Q2[new_i][new_j][3]]))
+                        elif new_j == 19:
+                            new_a = np.argmax(np.array([-10000000000, -10000000000, Q2[new_i][new_j][2], Q2[new_i][new_j][3]]))
+                        else:
+                            new_a = np.argmax(np.array([Q2[new_i][new_j][0], -10000000000, Q2[new_i][new_j][2], Q2[new_i][new_j][3]]))
+                    elif new_j == 0:
+                        new_a = np.argmax(np.array([Q2[new_i][new_j][0], Q2[new_i][new_j][1], -10000000000, Q2[new_i][new_j][3]]))
                     elif new_j == 19:
-                        new_a = np.argmax(np.array([Q2[new_i][new_j][1], Q2[new_i][new_j][2]]))
+                        new_a = np.argmax(np.array([-10000000000, Q2[new_i][new_j][1], Q2[new_i][new_j][2], Q2[new_i][new_j][3]]))
                     else:
-                        new_a = np.argmax(np.array([Q2[new_i][new_j][0], Q2[new_i][new_j][1], Q2[new_i][new_j][2]]))
-                elif new_i == 16:
-                    # add a -100000000 which is very small to use np.argmax to get the index directly
-                    if new_j == 0:
-                        new_a = np.argmax(np.array([Q2[new_i][new_j][0], -10000000000, -10000000000, Q2[new_i][new_j][3]]))
-                    elif new_j == 19:
-                        new_a = np.argmax(np.array([-10000000000, -10000000000, Q2[new_i][new_j][2], Q2[new_i][new_j][3]]))
-                    else:
-                        new_a = np.argmax(np.array([Q2[new_i][new_j][0], -10000000000, Q2[new_i][new_j][2], Q2[new_i][new_j][3]]))
-                elif new_j == 0:
-                    new_a = np.argmax(np.array([Q2[new_i][new_j][0], Q2[new_i][new_j][1], -10000000000, Q2[new_i][new_j][3]]))
-                elif new_j == 19:
-                    new_a = np.argmax(np.array([-10000000000, Q2[new_i][new_j][1], Q2[new_i][new_j][2], Q2[new_i][new_j][3]]))
+                        new_a = np.argmax(np.array([Q2[new_i][new_j][0], Q2[new_i][new_j][1], Q2[new_i][new_j][2], Q2[new_i][new_j][3]]))
+                    Qmax = Q1[new_i][new_j][new_a]
+                    Q2[i][j][a] += self.alpha * (self.rewards[i][j][a] + self.gama * Qmax - Q2[i][j][a])
+                # Update Q1
                 else:
-                    new_a = np.argmax(np.array([Q2[new_i][new_j][0], Q2[new_i][new_j][1], Q2[new_i][new_j][2], Q2[new_i][new_j][3]]))
-                Qmax = self.Q[new_i][new_j][new_a]
-                self.Q[i][j][a] += self.alpha * (self.rewards[i][j][a] + self.gama * Qmax - self.Q[i][j][a])
-                # calculate a'
+                    if new_i == 0:
+                        if new_j == 0:
+                            new_a = np.argmax(np.array([Q1[new_i][new_j][0], Q1[new_i][new_j][1]]))
+                        elif new_j == 19:
+                            new_a = np.argmax(np.array([Q1[new_i][new_j][1], Q1[new_i][new_j][2]]))
+                        else:
+                            new_a = np.argmax(np.array([Q1[new_i][new_j][0], Q1[new_i][new_j][1], Q1[new_i][new_j][2]]))
+                    elif new_i == 16:
+                        if new_j == 0:
+                            new_a = np.argmax(np.array([Q1[new_i][new_j][0], -10000000000, -10000000000, Q1[new_i][new_j][3]]))
+                        elif new_j == 19:
+                            new_a = np.argmax(np.array([-10000000000, -10000000000, Q1[new_i][new_j][2], Q1[new_i][new_j][3]]))
+                        else:
+                            new_a = np.argmax(np.array([Q1[new_i][new_j][0], -10000000000, Q1[new_i][new_j][2], Q1[new_i][new_j][3]]))
+                    elif new_j == 0:
+                        new_a = np.argmax(np.array([Q1[new_i][new_j][0], Q1[new_i][new_j][1], -10000000000, Q1[new_i][new_j][3]]))
+                    elif new_j == 19:
+                        new_a = np.argmax(np.array([-10000000000, Q1[new_i][new_j][1], Q1[new_i][new_j][2], Q1[new_i][new_j][3]]))
+                    else:
+                        new_a = np.argmax(np.array([Q1[new_i][new_j][0], Q1[new_i][new_j][1], Q1[new_i][new_j][2], Q1[new_i][new_j][3]]))
+                    Qmax = Q2[new_i][new_j][new_a]
+                    Q1[i][j][a] += self.alpha * (self.rewards[i][j][a] + self.gama * Qmax - Q1[i][j][a])
+                # Calculate a'
+                self.Q = Q1 + Q2
                 self.step_epsilon_greedy_Q(self.epsilon)
                 new_a = self.a
                 self.state = [new_i, new_j]
                 a = new_a
                 i = new_i
                 j = new_j
-                count += 1
-                if count > 250:
-                    break
             if self.iteration % 100 == 0:
                 print(self.iteration)
 
@@ -265,6 +275,6 @@ TD = TimeDifference()
 
 #TD.evaluation_expected_Sarsa(300)
 
-TD.evaluation_double_Qlearning(500)
+TD.evaluation_double_Qlearning(2000)
 
 TD.show()
